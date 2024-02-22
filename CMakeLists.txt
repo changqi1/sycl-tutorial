@@ -6,4 +6,5 @@ set(CMAKE_CXX_COMPILER "icpx")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-device-code-split=per_kernel -lOpenCL")
 
 add_subdirectory(1_gpu_info)
+add_subdirectory(2_queue)
 add_subdirectory(2_array_operation)
