@@ -15,6 +15,7 @@ Queue:
     - The parallel_for member function is a simplified form of submit.
   • A queue is a mechanism for submitting work to a device.
   • One queue maps to one device, and multiple queues can map to the same device.
+  • queue could be initialize by device, like: sycl::queue q(device)
 
 Handler:
   • parallel_for: Execute lambda expressions or function objects in parallel on the device.
@@ -27,20 +28,19 @@ Handler:
 */
 
 constexpr int N = 16;
-using namespace sycl;
 
 int main() {
-    queue q;                               //     ──┐
-    int *data = malloc_shared<int>(N, q);  //       ├─ Host code
-                                           //       │
-    q.parallel_for(N, [=](auto i) {        // ──┐ ──┘
-        data[i] = i;                       //   ├─ Device code
-    }).wait();                             // ──┘ ──┐
-                                           //       ├─ Host code
-    for (int i = 0; i < N; i++)            //       │
-        std::cout << data[i] << "\n";      //     ──┘
+    sycl::queue q;                               //     ──┐
+    int *data = sycl::malloc_shared<int>(N, q);  //       ├─ Host code
+                                                 //       │
+    q.parallel_for(N, [=](auto i) {              // ──┐ ──┘
+        data[i] = i;                             //   ├─ Device code
+    }).wait();                                   // ──┘ ──┐
+                                                 //       ├─ Host code
+    for (int i = 0; i < N; i++)                  //       │
+        std::cout << data[i] << "\n";            //     ──┘
 
-    q.submit([&] (handler &h) {
+    q.submit([&] (sycl::handler &h) {
         h.parallel_for(N, [=](auto i) {
             data[i] = i * 10;
         });
@@ -49,6 +49,13 @@ int main() {
     for (int i = 0; i < N; i++)
         std::cout << data[i] << "\n";
 
-    free(data, q);                         // Host code
+    sycl::free(data, q);                         // Host code
+
+    std::cout << "Device: " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
+    std::string IntelDev = q.get_device().get_info<sycl::info::device::name>().find("Intel") != std::string::npos ? "Yes" : "No";
+    std::cout << "Device is from Intel: " << IntelDev << std::endl;
+    std::string isGPU = q.get_device().is_gpu() == true ? "Yes" : "No";
+    std::cout << "Device is GPU: " << isGPU << std::endl;
+
     return 0;
 }
