@@ -81,9 +81,10 @@ int main() {
 
         q.memcpy(data_gpu, data_cpu, sizeof(int) * N).wait();
 
-        q.parallel_for(N, [=](auto i) {
-            data_gpu[i] = i;
-        }).wait();
+        // Add data dependency
+        auto e = q.parallel_for(N, [=](auto i) { data_gpu[i] = i + 1; });
+        q.parallel_for(N, e, [=](auto i) { data_gpu[i] = i + 2; });
+        q.wait();
 
         q.memcpy(data_cpu, data_gpu, sizeof(int) * N).wait();
 
