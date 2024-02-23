@@ -1,5 +1,6 @@
 #include <CL/sycl.hpp>
 #include <iostream>
+#include <memory>
 
 /*
 Keys:
@@ -28,14 +29,23 @@ Handler:
   • prefetch: Prefetch data to the device.
 
 USM:
+  Unified Shared Memory (USM) is a pointer-based memory management in SYCL, like malloc or new of C or C++ to allocate data.
+  ---------------------------------------
       CPU           GPU     |  CPU   GPU
        │             │      |    \   /
    HostMemory --- GPUMemory |     USM
+  ---------------------------------------
+  | Type   | Function call  | Description                                               | Accessible on Host  | Accessible on Device |
+  | ------ | -------------- | --------------------------------------------------------- | ------------------- | -------------------- |
+  | Device | malloc_device  | Allocation on device (explicit)                           | NO                  | YES                  |
+  | Host   | malloc_host    | Allocation on host (implicit)                             | YES                 | YES                  |
+  | Shared | malloc_shared  | Allocation can migrate between host and device (implicit) | YES                 | YES                  |
 */
 
 constexpr int N = 16;
 
 int main() {
+    // USM Implicit Data Movement
     sycl::queue q;                               //     ──┐
     int *data = sycl::malloc_shared<int>(N, q);  //       ├─ Host code
                                                  //       │
@@ -62,6 +72,27 @@ int main() {
     std::cout << "Device is from Intel: " << IntelDev << std::endl;
     std::string isGPU = q.get_device().is_gpu() == true ? "Yes" : "No";
     std::cout << "Device is GPU: " << isGPU << std::endl;
+
+    // USM Explicit Data Movement
+    {
+        sycl::queue q;
+        int *data_cpu = static_cast<int *>(std::malloc(N * sizeof(int)));
+        int *data_gpu = sycl::malloc_device<int>(N, q);
+
+        q.memcpy(data_gpu, data_cpu, sizeof(int) * N).wait();
+
+        q.parallel_for(N, [=](auto i) {
+            data_gpu[i] = i;
+        }).wait();
+
+        q.memcpy(data_cpu, data_gpu, sizeof(int) * N).wait();
+
+        for (int i = 0; i < N; i++)
+            std::cout << data_cpu[i] << "\n";
+
+        free(data_cpu);
+        sycl::free(data_gpu, q);
+    }
 
     return 0;
 }

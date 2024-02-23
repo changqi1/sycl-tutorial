@@ -15,14 +15,15 @@ constexpr int N = 16;
 
 int main() {
     sycl::queue q;
-    std::vector<int> v(N);
+    std::vector<int> v(N, 2);
 
     {
         sycl::buffer buf(v);
         q.submit([&](sycl::handler &h) {
-            sycl::accessor a(buf, h, sycl::write_only);
+            sycl::accessor a1(buf, h, sycl::read_only);
+            sycl::accessor a2(buf, h, sycl::write_only);
             h.parallel_for(N, [=](auto i) {
-                a[i] = i;
+                a2[i] = a1[i] + i;
             });
         }).wait();
 

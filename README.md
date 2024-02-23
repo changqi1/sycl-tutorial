@@ -62,5 +62,5 @@ make -j
 
 ### Reference:
 
-1）https://devcloud.intel.com/oneapi/get_started/baseTrainingModules/
-2) DPC++ API: https://intel.github.io/llvm-docs/doxygen/index.html
+1）Training: https://devcloud.intel.com/oneapi/get_started/baseTrainingModules/  
+2) DPC++ API: https://intel.github.io/llvm-docs/doxygen/index.html  
