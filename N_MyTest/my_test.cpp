@@ -1,6 +1,11 @@
 #include <CL/sycl.hpp>
 #include <iostream>
 
+/*
+!!! Use `xpu-smi discovery` to find your device_id, like 0000:5b:00.0,
+    then, replace the following BDF value by your BDF.
+*/
+
 constexpr int N = 16;
 
 sycl::device getMyDevice() {

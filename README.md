@@ -12,3 +12,7 @@ mkdir build && cd build
 cmake ..
 make -j
 ```
+
+### Reference:
+
+1) DPC++ API: https://intel.github.io/llvm-docs/doxygen/index.html

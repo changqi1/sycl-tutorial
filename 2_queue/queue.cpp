@@ -1,4 +1,5 @@
 #include <CL/sycl.hpp>
+#include <iostream>
 
 /*
 Keys:
@@ -25,6 +26,11 @@ Handler:
   • memset: Set the value of a memory block on the device.
   • fill: Fill a buffer or array on the device.
   • prefetch: Prefetch data to the device.
+
+USM:
+      CPU           GPU     |  CPU   GPU
+       │             │      |    \   /
+   HostMemory --- GPUMemory |     USM
 */
 
 constexpr int N = 16;
@@ -40,7 +46,7 @@ int main() {
     for (int i = 0; i < N; i++)                  //       │
         std::cout << data[i] << "\n";            //     ──┘
 
-    q.submit([&] (sycl::handler &h) {
+    q.submit([&](sycl::handler &h) {
         h.parallel_for(N, [=](auto i) {
             data[i] = i * 10;
         });
