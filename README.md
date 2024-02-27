@@ -62,5 +62,19 @@ make -j
 
 ### Reference:
 
-1）Training: https://devcloud.intel.com/oneapi/get_started/baseTrainingModules/  
-2) DPC++ API: https://intel.github.io/llvm-docs/doxygen/index.html  
+Training material:
+ - PPT: https://0cch.com/uploads/2022/09/c++2022.pdf
+ - https://0cch.com/2022/11/12/sycl-coding-practice-and-compilation-design-analysis/\
+ - code: https://devcloud.intel.com/oneapi/get_started/baseTrainingModules/
+ - DPC++ API: https://intel.github.io/llvm-docs/doxygen/index.html
+ - Example: https://github.com/oneapi-src/oneAPI-samples/tree/master/DirectProgramming/C%2B%2BSYCL
+ - Example: https://www.intel.com/content/www/us/en/developer/articles/code-sample/vector-add.html
+  - oneAPI GPU Optimization Guide: https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-0/introduction-002.html
+  - Intel® Xe GPU Architecture: https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-0/intel-xe-gpu-architecture.html
+  - Intel® XPU Manager doc: https://www.intel.com/content/www/us/en/software/xpu-manager.html
+  - Intel® XPU Manager gtihub: https://github.com/intel/xpumanager
+  - Intel® XPU Manager gtihub: https://github.com/intel-innersource/libraries.compute.xpu-manager.xpum
+  - intel xetla: https://github.com/intel/xetla/
+  - xft-xpu: https://github.com/intel-sandbox/xFasterTransformer-xpu
+  - NVIDIA GeForce RTX 4090 D: https://www.techpowerup.com/gpu-specs/geforce-rtx-4090-d.c4189
+
