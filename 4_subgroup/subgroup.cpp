@@ -71,22 +71,59 @@ Keys:
 template<int Dimensions = 1>
 nd_range(range<Dimensions> globalSize, range<Dimensions> workGroupSize)
 nd_range(range<Dimensions> globalSize, range<Dimensions> workGroupSize, id<Dimensions> offset)
-
-
 */
 
-constexpr size_t globalSize = 256; // global size
-constexpr size_t workGroupSize = 64; // work-group size
+const int sequence_length = 4;
+const int head_num = 4;
+const int head_size = 2;
 
-using namespace sycl;
+inline void addKernel(const sycl::stream &out, const sycl::nd_item<3> &item,
+                      const sycl::accessor<int, 1, sycl::access::mode::read> &accessorA,
+                      const sycl::accessor<int, 1, sycl::access::mode::read> &accessorB,
+                      const sycl::accessor<int, 1, sycl::access::mode::write> &accessorC) {
+    auto sub_group = item.get_sub_group();
+    out << "id in global_size: " << item.get_global_id() << "/" << item.get_global_linear_id() << " in " << item.get_global_range() << " | "
+        << "work_group idx: " << item.get_group().get_group_id() << "/" << item.get_group_linear_id() << " of " << item.get_group_range() << ", "
+        << "id in work_group_size: " << item.get_local_id() << "/" << item.get_local_linear_id() << " in " << item.get_local_range()  << " | "
+        << "sub_group idx: " << sub_group.get_group_id() << "/" << sub_group.get_group_linear_id() << " of " << sub_group.get_group_range() << ", "
+        << "id in sub_group: " << sub_group.get_local_id() << "/" << sub_group.get_local_linear_id() << " in " << sub_group.get_local_range() << sycl::endl;
+
+    size_t linearIndex = item.get_global_id(0) * item.get_global_range(1) * item.get_global_range(2) +
+                         item.get_global_id(1) * item.get_global_range(2) +
+                         item.get_global_id(2);
+    accessorC[linearIndex] = accessorA[linearIndex] + accessorB[linearIndex];
+}
+
+void Add(sycl::queue &q, std::vector<int> &a, std::vector<int> &b, std::vector<int> &c) {
+    sycl::buffer<int, 1> bufferA(a.data(), sycl::range<1>(a.size()));
+    sycl::buffer<int, 1> bufferB(b.data(), sycl::range<1>(b.size()));
+    sycl::buffer<int, 1> bufferC(c.data(), sycl::range<1>(c.size()));
+
+    q.submit([&](sycl::handler &cgh) {
+        using namespace sycl;
+        auto out = stream(10240, 7680, cgh);
+
+        auto accessorA = bufferA.get_access<access::mode::read>(cgh);
+        auto accessorB = bufferB.get_access<access::mode::read>(cgh);
+        auto accessorC = bufferC.get_access<access::mode::write>(cgh);
+
+        range<3> globalSize(sequence_length, head_num, head_size);
+        range<3> workGroupSize(sequence_length, head_num / 2, head_size);
+
+        cgh.parallel_for<class kernelAdd>(
+            nd_range(globalSize, workGroupSize),
+            [=](nd_item<3> item) [[intel::reqd_sub_group_size(16)]] {
+                addKernel(out, item, accessorA, accessorB, accessorC);
+        });
+    }).wait();
+}
 
 int main() {
-    queue q;
-    std::vector<int> v(globalSize);
+    sycl::queue q;
 
-    std::cout << "Device : " << q.get_device().get_info<info::device::name>() << "\n";
+    std::cout << "Device : " << q.get_device().get_info<sycl::info::device::name>() << "\n";
 
-    auto sg_sizes = q.get_device().get_info<info::device::sub_group_sizes>();
+    auto sg_sizes = q.get_device().get_info<sycl::info::device::sub_group_sizes>();
     std::cout << "Supported Sub-Group Sizes : ";
     for (int i=0; i<sg_sizes.size(); i++)
         std::cout << sg_sizes[i] << " "; std::cout << "\n";
@@ -94,22 +131,17 @@ int main() {
     auto max_sg_size = std::max_element(sg_sizes.begin(), sg_sizes.end());
     std::cout << "Max Sub-Group Size        : " << max_sg_size[0] << "\n";
 
-    buffer buf(v);
-    q.submit([&](handler &h) {
-        auto out = stream(1024, 768, h);
+    std::vector<int> a(sequence_length * head_num * head_size);
+    std::vector<int> b(sequence_length * head_num * head_size);
+    std::vector<int> c(sequence_length * head_num * head_size);
 
-        // nd-range kernel with user specified sub_group size
-        h.parallel_for(nd_range<1>(globalSize, workGroupSize), [=](nd_item<1> item) {
-        // h.parallel_for(nd_range<1>(globalSize, workGroupSize), [=](nd_item<1> item)[[intel::reqd_sub_group_size(32)]] {
-            auto sg = item.get_sub_group();
-            out << "sub_group id: " << sg.get_group_id() << " of "
-                << sg.get_group_range() << ", size=" << sg.get_local_range() << " "
-                << sg.get_local_id() << "\n";
-        });
-    }).wait();
+    for (int i = 0; i < sequence_length * head_num * head_size; ++i)
+        a[i] = b[i] = i;
 
-    for (int i = 0; i < globalSize; i++)
-        std::cout << v[i] << " ";
+    Add(q, a, b, c);
+
+    for (int i = 0; i < sequence_length * head_num * head_size; ++i)
+        std::cout << c[i] << " ";
     std::cout << std::endl;
 
     return 0;
